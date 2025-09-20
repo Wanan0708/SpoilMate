@@ -1,3 +1,4 @@
+com\spoilmate\websocket\ChatMessageNotification.class
 com\spoilmate\repository\PhotoAlbumRepository.class
 com\spoilmate\dto\UserSearchResponse$UserSearchResponseBuilder.class
 com\spoilmate\repository\PhotoRepository.class

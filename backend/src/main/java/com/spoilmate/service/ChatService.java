@@ -10,6 +10,7 @@ import com.spoilmate.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,11 +21,24 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
     private final RelationshipService relationshipService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Transactional
     public ChatMessage sendMessage(String content, MessageType type) {
+        System.out.println("=== ChatService.sendMessage called ==="); 
+        System.out.println("Content: " + content);
+        System.out.println("Type: " + type);
+        
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        return sendMessageByUsername(content, type, username);
+        System.out.println("Sender username: " + username);
+        
+        ChatMessage savedMessage = sendMessageByUsername(content, type, username);
+        System.out.println("Message saved with ID: " + savedMessage.getId());
+        
+        // 立即触发WebSocket推送
+        triggerWebSocketPush(savedMessage, username);
+        
+        return savedMessage;
     }
     
     @Transactional
@@ -76,6 +90,56 @@ public class ChatService {
     public ChatMessage getMessageById(Long messageId) {
         return chatMessageRepository.findById(messageId)
                 .orElse(null);
+    }
+    
+    private void triggerWebSocketPush(ChatMessage message, String senderUsername) {
+        try {
+            System.out.println("=== Triggering WebSocket Push ===");
+            System.out.println("Message ID: " + message.getId());
+            System.out.println("Sender: " + senderUsername);
+            
+            Relationship relationship = relationshipService.getCurrentRelationshipByUsername(senderUsername);
+            if (relationship == null) {
+                System.err.println("No relationship found for WebSocket push");
+                return;
+            }
+            
+            // 获取伴侣ID
+            User partner;
+            if (relationship.getUser().getUsername().equals(senderUsername)) {
+                partner = relationship.getPartner();
+            } else {
+                partner = relationship.getUser();
+            }
+            
+            Long partnerId = partner.getId();
+            String partnerUsername = partner.getUsername();
+            
+            System.out.println("Sending WebSocket message to partner: " + partnerUsername + " (ID: " + partnerId + ")");
+            
+            // 向伴侣发送完整消息 - 使用用户名而不是数据库ID
+            messagingTemplate.convertAndSendToUser(
+                    partnerUsername,  // 使用用户名
+                    "/queue/messages",
+                    message
+            );
+            
+            System.out.println("WebSocket message sent successfully to partner using username: " + partnerUsername);
+            
+            // 为了测试，也向发送者发送一份副本（便于调试）
+            User sender = message.getSender();
+            System.out.println("Also sending to sender for testing: " + sender.getUsername() + " (ID: " + sender.getId() + ")");
+            messagingTemplate.convertAndSendToUser(
+                    sender.getUsername(),  // 使用用户名
+                    "/queue/messages",
+                    message
+            );
+            System.out.println("Test message also sent to sender using username: " + sender.getUsername());
+            
+        } catch (Exception e) {
+            System.err.println("Error in WebSocket push: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     public long getUnreadCount() {

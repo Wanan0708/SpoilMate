@@ -35,6 +35,7 @@ public class ChatWebSocketHandler {
         System.out.println("=== WebSocket notifyMessage called ===");
         System.out.println("Message ID: " + notification.getMessageId());
         System.out.println("Principal: " + (principal != null ? principal.getName() : "null"));
+        System.out.println("Thread: " + Thread.currentThread().getName());
         
         if (principal == null) {
             System.err.println("Principal is null in notifyMessage");
@@ -54,8 +55,14 @@ public class ChatWebSocketHandler {
             }
             
             System.out.println("Found message with ID: " + message.getId());
+            System.out.println("Message content: " + message.getContent());
+            System.out.println("Message sender: " + message.getSender().getUsername());
             
             Relationship relationship = relationshipService.getCurrentRelationshipByUsername(username);
+            if (relationship == null) {
+                System.err.println("No relationship found for user: " + username);
+                return;
+            }
             System.out.println("Found relationship: " + relationship.getId());
 
             // 获取伴侣ID
@@ -63,16 +70,24 @@ public class ChatWebSocketHandler {
                     ? relationship.getPartner().getId()
                     : relationship.getUser().getId();
             
+            String partnerUsername = relationship.getUser().getUsername().equals(username)
+                    ? relationship.getPartner().getUsername()
+                    : relationship.getUser().getUsername();
+            
             System.out.println("Partner ID: " + partnerId);
+            System.out.println("Partner Username: " + partnerUsername);
             System.out.println("Sender ID: " + message.getSender().getId());
 
-            // 只向伴侣发送新消息通知
+            // 向伴侣发送完整的消息对象，实现立即显示
+            System.out.println("Sending complete message to partner via WebSocket...");
             messagingTemplate.convertAndSendToUser(
                     partnerId.toString(),
-                    "/queue/notifications", 
-                    "New message available"
+                    "/queue/messages", 
+                    message
             );
-            System.out.println("Notification sent to partner: " + partnerId);
+            System.out.println("Complete message sent to partner: " + partnerId);
+            System.out.println("Message content sent: " + message.getContent());
+            System.out.println("WebSocket message delivery completed");
             
         } catch (Exception e) {
             System.err.println("Error in WebSocket notifyMessage: " + e.getMessage());

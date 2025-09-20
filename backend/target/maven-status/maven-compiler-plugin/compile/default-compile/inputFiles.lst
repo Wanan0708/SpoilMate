@@ -44,6 +44,7 @@ E:\Project\CursorProject\spoilMate\backend\src\main\java\com\spoilmate\model\Use
 E:\Project\CursorProject\spoilMate\backend\src\main\java\com\spoilmate\controller\DashboardController.java
 E:\Project\CursorProject\spoilMate\backend\src\main\java\com\spoilmate\service\UserSettingsService.java
 E:\Project\CursorProject\spoilMate\backend\src\main\java\com\spoilmate\repository\UserSettingsRepository.java
+E:\Project\CursorProject\spoilMate\backend\src\main\java\com\spoilmate\websocket\ChatMessageNotification.java
 E:\Project\CursorProject\spoilMate\backend\src\main\java\com\spoilmate\repository\PhotoRepository.java
 E:\Project\CursorProject\spoilMate\backend\src\main\java\com\spoilmate\config\SecurityConfig.java
 E:\Project\CursorProject\spoilMate\backend\src\main\java\com\spoilmate\websocket\ChatMessageRequest.java
