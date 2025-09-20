@@ -2,7 +2,9 @@ package com.spoilmate.service;
 
 import com.spoilmate.dto.DashboardStats;
 import com.spoilmate.model.ImportantDate;
+import com.spoilmate.model.Relationship;
 import com.spoilmate.model.RelationshipRecord;
+import com.spoilmate.model.RelationshipStatus;
 import com.spoilmate.model.User;
 import com.spoilmate.repository.ImportantDateRepository;
 import com.spoilmate.repository.RelationshipRecordRepository;
@@ -26,6 +28,7 @@ public class DashboardService {
     private final UserRepository userRepository;
     private final RelationshipRecordRepository recordRepository;
     private final ImportantDateRepository dateRepository;
+    private final RelationshipService relationshipService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -36,37 +39,44 @@ public class DashboardService {
 
         List<RelationshipRecord> records = recordRepository.findByUserIdOrderByDateDesc(user.getId());
         List<ImportantDate> dates = dateRepository.findByUserIdOrderByDateAsc(user.getId());
+        
+        // 获取当前关系信息
+        Relationship relationship = relationshipService.getCurrentRelationship();
 
         return DashboardStats.builder()
-                .relationshipStats(calculateRelationshipStats(records))
+                .relationshipStats(calculateRelationshipStats(records, relationship))
                 .nextEvent(findNextEvent(dates))
                 .recentEvents(getRecentEvents(records, dates))
                 .build();
     }
 
-    private DashboardStats.RelationshipStats calculateRelationshipStats(List<RelationshipRecord> records) {
-        if (records.isEmpty()) {
+    private DashboardStats.RelationshipStats calculateRelationshipStats(List<RelationshipRecord> records, Relationship relationship) {
+        // 如果没有关系或关系不是活跃状态
+        if (relationship == null || !relationship.getStatus().equals(RelationshipStatus.ACTIVE)) {
             return DashboardStats.RelationshipStats.builder()
                     .totalDays(0)
-                    .recordsCount(0)
-                    .startDate(LocalDate.now().format(DATE_FORMATTER))
+                    .recordsCount(records.size())
+                    .startDate("尚未开始")
                     .build();
         }
 
-        String firstDate = records.stream()
-                .min(Comparator.comparing(RelationshipRecord::getDate))
-                .map(RelationshipRecord::getDate)
-                .orElse(LocalDate.now().format(DATE_FORMATTER));
+        // 使用关系的startDate来计算恋爱天数
+        LocalDate startDate;
+        if (relationship.getStartDate() != null) {
+            startDate = relationship.getStartDate().toLocalDate();
+        } else {
+            // 如果没有startDate，使用关系的创建日期
+            startDate = relationship.getCreatedAt().toLocalDate();
+        }
 
-        long totalDays = ChronoUnit.DAYS.between(
-                LocalDate.parse(firstDate),
-                LocalDate.now()
-        );
+        long totalDays = ChronoUnit.DAYS.between(startDate, LocalDate.now());
+        // 确保天数不为负数，至少为1天
+        totalDays = Math.max(1, totalDays);
 
         return DashboardStats.RelationshipStats.builder()
                 .totalDays((int) totalDays)
                 .recordsCount(records.size())
-                .startDate(firstDate)
+                .startDate(startDate.format(DATE_FORMATTER))
                 .build();
     }
 
