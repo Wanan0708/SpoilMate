@@ -20,7 +20,7 @@ spring:
       max-request-size: 15MB
 
 server:
-  port: 8080
+  port: 8083  # 修改端口为8083
   servlet:
     context-path: /api
 
@@ -38,4 +38,4 @@ logging:
   level:
     root: INFO
     com.spoilmate: DEBUG
-    org.springframework.security: INFO 
+    org.springframework.security: INFO

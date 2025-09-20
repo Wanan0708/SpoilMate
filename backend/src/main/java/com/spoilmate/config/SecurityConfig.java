@@ -46,6 +46,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**").permitAll()
                 .requestMatchers("/ws/**").permitAll()
+                .requestMatchers("/albums/**").authenticated()  // 明确允许认证用户访问相册相关端点
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session

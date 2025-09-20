@@ -34,16 +34,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String username;
 
+        // 添加调试信息
+        System.out.println("JWT Filter - Auth Header: " + authHeader);
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println("JWT Filter - No valid Authorization header found");
             filterChain.doFilter(request, response);
             return;
         }
 
         jwt = authHeader.substring(7);
         username = jwtService.extractUsername(jwt);
+        
+        // 添加调试信息
+        System.out.println("JWT Filter - Extracted username: " + username);
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             var userDetails = this.userDetailsService.loadUserByUsername(username);
+            
+            // 添加调试信息
+            System.out.println("JWT Filter - User details loaded: " + userDetails.getUsername());
+            System.out.println("JWT Filter - Token valid: " + jwtService.isTokenValid(jwt, userDetails));
 
             if (jwtService.isTokenValid(jwt, userDetails)) {
                 var authToken = new UsernamePasswordAuthenticationToken(
@@ -55,8 +66,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                // 添加调试信息
+                System.out.println("JWT Filter - Authentication set in SecurityContext");
+            } else {
+                // 添加调试信息
+                System.out.println("JWT Filter - Token is invalid");
             }
+        } else {
+            // 添加调试信息
+            System.out.println("JWT Filter - Username is null or authentication already exists");
         }
         filterChain.doFilter(request, response);
     }
-} 
+}

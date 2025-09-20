@@ -104,22 +104,19 @@ public class ChatService {
                 return;
             }
             
-            // 获取伴侣ID
-            User partner;
+            // 获取伴侣用户名
+            String partnerUsername;
             if (relationship.getUser().getUsername().equals(senderUsername)) {
-                partner = relationship.getPartner();
+                partnerUsername = relationship.getPartner().getUsername();
             } else {
-                partner = relationship.getUser();
+                partnerUsername = relationship.getUser().getUsername();
             }
             
-            Long partnerId = partner.getId();
-            String partnerUsername = partner.getUsername();
+            System.out.println("Sending WebSocket message to partner: " + partnerUsername);
             
-            System.out.println("Sending WebSocket message to partner: " + partnerUsername + " (ID: " + partnerId + ")");
-            
-            // 向伴侣发送完整消息 - 使用用户名而不是数据库ID
+            // 向伴侣发送完整消息 - 统一使用用户名作为目标
             messagingTemplate.convertAndSendToUser(
-                    partnerUsername,  // 使用用户名
+                    partnerUsername,  // 使用用户名而不是ID
                     "/queue/messages",
                     message
             );
@@ -127,14 +124,14 @@ public class ChatService {
             System.out.println("WebSocket message sent successfully to partner using username: " + partnerUsername);
             
             // 为了测试，也向发送者发送一份副本（便于调试）
-            User sender = message.getSender();
-            System.out.println("Also sending to sender for testing: " + sender.getUsername() + " (ID: " + sender.getId() + ")");
+            String senderName = message.getSender().getUsername();
+            System.out.println("Also sending to sender for testing: " + senderName);
             messagingTemplate.convertAndSendToUser(
-                    sender.getUsername(),  // 使用用户名
+                    senderName,  // 使用用户名而不是ID
                     "/queue/messages",
                     message
             );
-            System.out.println("Test message also sent to sender using username: " + sender.getUsername());
+            System.out.println("Test message also sent to sender using username: " + senderName);
             
         } catch (Exception e) {
             System.err.println("Error in WebSocket push: " + e.getMessage());

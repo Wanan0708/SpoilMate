@@ -81,11 +81,11 @@ public class ChatWebSocketHandler {
             // 向伴侣发送完整的消息对象，实现立即显示
             System.out.println("Sending complete message to partner via WebSocket...");
             messagingTemplate.convertAndSendToUser(
-                    partnerId.toString(),
+                    partnerUsername,  // 使用用户名而不是ID
                     "/queue/messages", 
                     message
             );
-            System.out.println("Complete message sent to partner: " + partnerId);
+            System.out.println("Complete message sent to partner: " + partnerUsername);
             System.out.println("Message content sent: " + message.getContent());
             System.out.println("WebSocket message delivery completed");
             
@@ -106,12 +106,13 @@ public class ChatWebSocketHandler {
             String username = principal.getName();
             Relationship relationship = relationshipService.getCurrentRelationshipByUsername(username);
             if (relationship != null) {
-                Long partnerId = relationship.getUser().getUsername().equals(username)
-                        ? relationship.getPartner().getId()
-                        : relationship.getUser().getId();
+                // 统一使用用户名作为目标标识符
+                String partnerUsername = relationship.getUser().getUsername().equals(username)
+                        ? relationship.getPartner().getUsername()
+                        : relationship.getUser().getUsername();
 
                 messagingTemplate.convertAndSendToUser(
-                        partnerId.toString(),
+                        partnerUsername,  // 使用用户名而不是ID
                         "/queue/typing",
                         true
                 );
